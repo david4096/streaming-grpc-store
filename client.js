@@ -10,6 +10,7 @@ var client = new service.Store(config.grpc.host + ':' + config.grpc.port, creden
 var call = client.store(function(err, res) {
     for (var i in res.keys) {
         var innercall = client.retrieveone({key: res.keys[i].key}, function(err, res) {
+            console.log(err);
             console.log(res)
         })
     }

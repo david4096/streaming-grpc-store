@@ -25,9 +25,9 @@ var storage = {};
 function store(call, callback) {
   var keys = [];
   call.on('data', function(msg) {
-    var k = service.StoreMessage(msg);
-    var key = getkey(service.StoreMessage.encode(msg).finish());
-    storage[key] = service.StoreMessage.encode(msg).finish();
+    var encoded = (new service.StoreMessage(msg)).encode64()
+    var key = getkey(encoded);
+    storage[key] = encoded;
     keys.push({key: key});
   });
   call.on('end', function() {
@@ -38,10 +38,8 @@ function store(call, callback) {
 }
 
 function retrieveone(call, callback) {
-    console.log(call.request.key)
-    console.log(storage[call.request.key]);
-    var k = service.StoreMessage
-    callback(null, storage[call.request.key]);
+    var k = service.StoreMessage.decode64(storage[call.request.key]);
+    callback(null, k);
 }
 
 server.bind(config.grpc.host + ':' + config.grpc.port, grpc.ServerCredentials.createInsecure());
