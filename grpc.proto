@@ -1,0 +1,37 @@
+syntax = "proto3";
+
+option java_package = "ex.grpc";
+option objc_class_prefix = "HSW";
+
+package streaming_grpc_store;
+
+service Store {
+  // The Store service presents a method for storing a message.
+  // When a stream of messages has ended, it returns a StoreResponse.
+  rpc store(stream StoreMessage) returns (StoreResponse) {}
+  rpc retrieveone(Key) returns (StoreMessage) {}
+}
+
+message Key {
+  // A key to retrieve an item
+  string key = 1;
+}
+
+message myType {
+  string msg = 1;
+}
+
+message yourType {
+  bool success = 1;
+}
+
+message StoreMessage {
+  myType my_type = 1;
+  yourType your_type = 2;
+}
+    
+message StoreResponse {
+  // The storage response should include information to allow the 
+  // information to be retrieved again.
+  repeated Key keys = 1;
+}
