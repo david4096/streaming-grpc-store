@@ -3,7 +3,7 @@ var SHA3 = require('sha3');
 
 var config = require('./config');
 
-var block_size = 512; // The storage implements a binary tree that blocks
+var block_size = 4096; // The storage implements a binary tree that blocks
                       // sequence in increments of this maximum length.
                       //
                       // Choosing a biologically relevant number will
@@ -22,6 +22,7 @@ var server = new grpc.Server();
 server.addProtoService(service.RawSequenceStore.service, 
 {
     store: store,
+    getbases: getbases,
     get: get
 });
 
@@ -42,20 +43,27 @@ function storesequence(bases) {
     var d = new SHA3.SHA3Hash();
     d.update(bases);
     if (leaves.length > 0) {
-        storage[d.digest('hex')] = {raw_sequence_ids: leaves};
+        storage[d.digest('hex')] = {raw_sequence_ids: leaves, length: bases.length};
     } else {
-        storage[d.digest('hex')] = {bases: bases};
+        
+        storage[d.digest('hex')] = {bases: bases, length: bases.length};
     }
-    console.log(storage);
+    //console.log(storage);
     return d.digest('hex');
 }
 
 function getsequence(raw_sequence_id) {
     var root = storage[raw_sequence_id];
     var buffer = "";
-    console.log(root);
-    if (root.raw_sequence_ids) {
-        console.log("Reading leaves");
+    //console.log(root);
+    // This is where a database comes in handy
+    // or bidirectional streams
+    if (root == undefined){
+        console.log('cache miss');
+        return buffer;
+    }
+    else if ('raw_sequence_ids' in root && root.raw_sequence_ids) {
+        //console.log("Reading leaves");
         root.raw_sequence_ids.forEach(function(rsid) {
             buffer += getsequence(rsid);
         });
@@ -69,23 +77,39 @@ function getsequence(raw_sequence_id) {
 
 var storage = {};
 
+function get(call, callback) {
+   // console.log(call);
+  //  console.log(storage[call.request.raw_sequence_id])
+  callback(null, storage[call.request.raw_sequence_id]);
+  console.log("Number of keys: " + Object.keys(storage).length);
+}
+
 function store(call, callback) {
   var buffer = "";
   var d = new SHA3.SHA3Hash();
   call.on('data', function(msg) {
     var message = new service.RawSequenceStreamWriteRequest(msg);
     buffer += msg.bases;
-    //d.update(msg.bases);
+    d.update(msg.bases);
   });
   call.on('end', function() {
-    var resp = {"raw_sequence_id": storesequence(buffer)};
-    console.log(resp);
+    setTimeout(function(){
+        storesequence(buffer);
+    }, 1);
+    var resp = {"raw_sequence_id": d.digest('hex')};
+    //console.log(resp);
     callback(null, new service.RawSequenceStreamWriteResponse(resp));
   });
 }
 
-function get(call) {
-    call.write({"bases": getsequence(call.request.raw_sequence_id)})
+function getbases(call) {
+    var buffer = getsequence(call.request.raw_sequence_id);
+    while (buffer.length > block_size) {
+        var sli = buffer.slice(0, block_size);
+        var buffer = buffer.slice(block_size, buffer.length);
+        call.write({"bases": sli});
+    }
+    call.write({"bases": buffer});
     call.end();
 }
 

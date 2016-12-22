@@ -10,7 +10,19 @@ service RawSequenceStore {
     // When the client has finished streaming in the bases to represent a sequence
     // The service streams back the created raw sequence identifier.
     rpc store(stream RawSequenceStreamWriteRequest) returns (RawSequenceStreamWriteResponse) {}
-    rpc get(RawSequenceStreamGetRequest) returns (stream RawSequenceStreamGetResponse) {}
+    rpc getbases(RawSequenceStreamGetRequest) returns (stream RawSequenceStreamGetResponse) {}
+    rpc get(RawSequenceGetRequest) returns (RawSequence) {}
+}
+
+message RawSequence {
+    string raw_sequence_id = 1;
+    string bases = 2;
+    repeated string raw_sequence_ids = 3;
+    int64 length = 4;
+}
+
+message RawSequenceGetRequest {
+    string raw_sequence_id = 1;
 }
 
 message RawSequenceStreamWriteRequest {
