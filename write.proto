@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+option java_package = "ex.grpc";
+option objc_class_prefix = "HSW";
+
+package sequence_store;
+
+service RawSequenceStore {
+    // Stream sequences into the store
+    // When the client has finished streaming in the bases to represent a sequence
+    // The service streams back the created raw sequence identifier.
+    rpc store(stream RawSequenceStreamWriteRequest) returns (RawSequenceStreamWriteResponse) {}
+    rpc get(RawSequenceStreamGetRequest) returns (stream RawSequenceStreamGetResponse) {}
+}
+
+message RawSequenceStreamWriteRequest {
+    string bases = 1;
+}
+
+message RawSequenceStreamGetRequest {
+    string raw_sequence_id = 1;
+}
+
+message RawSequenceStreamGetResponse {
+    string bases = 1;
+}
+
+message RawSequenceStreamWriteResponse {
+    string raw_sequence_id = 1;
+}
+
